@@ -6,15 +6,20 @@ function App() {
   const [jobDescription, setJobDescription] = useState("");
   const [topK, setTopK] = useState(5);
   const [results, setResults] = useState([]);
-  const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
 
-  // Change this to your deployed backend URL later
   const API_URL =
-    import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+    import.meta.env.VITE_BACKEND_URL ||
+    "https://test2-ox8y.onrender.com";
 
   const rankCandidates = async () => {
+    if (!jobDescription.trim()) {
+      setError("Please enter a job description.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -27,26 +32,35 @@ function App() {
           top_k: Number(topK),
         },
         {
-          timeout: 10000,
+          timeout: 60000,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      if (response.data?.top_candidates) {
-        setResults(response.data.top_candidates);
+      if (response.data.success) {
+        setResults(response.data.top_candidates || []);
       } else {
-        setError("No candidates returned from backend.");
+        setError(response.data.error || "Unknown backend error.");
       }
     } catch (err) {
       console.error(err);
 
-      if (err.response) {
+      if (err.code === "ECONNABORTED") {
+        setError(
+          "The server is taking longer than expected. If the backend was asleep, please wait a few seconds and try again."
+        );
+      } else if (err.response) {
         setError(
           `Backend Error ${err.response.status}: ${
-            err.response.data?.error || JSON.stringify(err.response.data)
+            err.response.data?.error || "Unknown error"
           }`
         );
       } else if (err.request) {
-        setError("No response received from backend.");
+        setError(
+          "Unable to connect to the backend. Please ensure the backend is running."
+        );
       } else {
         setError(err.message);
       }
@@ -79,7 +93,7 @@ function App() {
           <h2>Job Description</h2>
 
           <textarea
-            placeholder="Paste job description here..."
+            placeholder="Paste the job description here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
           />
@@ -88,6 +102,7 @@ function App() {
             <input
               type="number"
               min="1"
+              max="20"
               value={topK}
               onChange={(e) => setTopK(e.target.value)}
             />
@@ -97,14 +112,15 @@ function App() {
               onClick={rankCandidates}
               disabled={loading}
             >
-              {loading ? "Ranking..." : "Rank Candidates"}
+              {loading ? "Ranking Candidates..." : "Rank Candidates"}
             </button>
           </div>
         </div>
 
         {loading && (
           <div className="loading">
-            Ranking candidates...
+            <h3>🤖 AI is evaluating candidates...</h3>
+            <p>This may take a few seconds.</p>
           </div>
         )}
 
@@ -114,56 +130,77 @@ function App() {
           </div>
         )}
 
-        {!loading && results.length === 0 && !error && (
+        {!loading && !error && results.length === 0 && (
           <div className="empty">
-            <h2>🤖 AI Recruiter System</h2>
+            <h2>🤖 Welcome</h2>
             <p>
-              Enter a job description to find the best matching candidates.
+              Paste a job description and click
+              <strong> Rank Candidates </strong>
+              to find the best matching candidates.
             </p>
           </div>
         )}
 
-        <div className="results-grid">
-          {results.map((candidate) => (
-            <div
-              key={candidate.candidate_id}
-              className="card"
-            >
-              <div className="card-top">
-                <h3>{candidate.current_title}</h3>
+        {results.length > 0 && (
+          <>
+            <h2 className="results-title">
+              Top {results.length} Matching Candidates
+            </h2>
 
-                <span className="score">
-                  {candidate.final_score}
-                </span>
-              </div>
+            <div className="results-grid">
+              {results.map((candidate) => (
+                <div
+                  className="card"
+                  key={candidate.candidate_id}
+                >
+                  <div className="card-top">
+                    <h3>
+                      {candidate.current_title || "Unknown Title"}
+                    </h3>
 
-              <p>
-                <strong>ID:</strong> {candidate.candidate_id}
-              </p>
+                    <span className="score">
+                      {Number(candidate.final_score || 0).toFixed(2)}
+                    </span>
+                  </div>
 
-              <p>
-                <strong>Experience:</strong>{" "}
-                {candidate.years_experience} years
-              </p>
+                  <p>
+                    <strong>ID:</strong>{" "}
+                    {candidate.candidate_id}
+                  </p>
 
-              <p>
-                <strong>Location:</strong>{" "}
-                {candidate.location}
-              </p>
+                  <p>
+                    <strong>Experience:</strong>{" "}
+                    {candidate.years_experience ?? 0} years
+                  </p>
 
-              <div className="skills">
-                {candidate.skill_names?.slice(0, 8).map((skill, index) => (
-                  <span
-                    key={index}
-                    className="skill"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
+                  <p>
+                    <strong>Location:</strong>{" "}
+                    {candidate.location || "N/A"}
+                  </p>
+
+                  <div className="skills">
+                    {candidate.skill_names?.length ? (
+                      candidate.skill_names
+                        .slice(0, 8)
+                        .map((skill, index) => (
+                          <span
+                            key={index}
+                            className="skill"
+                          >
+                            {skill}
+                          </span>
+                        ))
+                    ) : (
+                      <span className="skill">
+                        No skills available
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
       </div>
     </div>
