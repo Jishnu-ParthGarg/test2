@@ -2,8 +2,8 @@ from pathlib import Path
 from functools import lru_cache
 import json
 
-from Backend.jd_parser import extract_jd_requirements
-from Backend.jd_matcher import calculate_jd_score
+from jd_parser import extract_jd_requirements
+from jd_matcher import calculate_jd_score
 
 
 # -------------------------
