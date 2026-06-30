@@ -5,6 +5,7 @@ import "./App.css";
 function App() {
   const [jobDescription, setJobDescription] = useState("");
   const [topK, setTopK] = useState(5);
+  const [useLlm, setUseLlm] = useState(true);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -12,7 +13,7 @@ function App() {
 
   const API_URL =
     import.meta.env.VITE_BACKEND_URL ||
-    "https://test2-ox8y.onrender.com";
+    "http://127.0.0.1:8080";
 
   const rankCandidates = async () => {
     if (!jobDescription.trim()) {
@@ -30,6 +31,7 @@ function App() {
         {
           job_description: jobDescription,
           top_k: Number(topK),
+          use_llm: useLlm,
         },
         {
           timeout: 60000,
@@ -41,8 +43,13 @@ function App() {
 
       if (response.data.success) {
         setResults(response.data.top_candidates || []);
+        if ((response.data.top_candidates || []).length === 0) {
+          setError(
+            "No matching candidates found. Try a more detailed job description, or check the use_llm toggle."
+          );
+        }
       } else {
-        setError(response.data.error || "Unknown backend error.");
+        setError(response.data.detail || response.data.error || "Unknown backend error.");
       }
     } catch (err) {
       console.error(err);
@@ -52,11 +59,10 @@ function App() {
           "The server is taking longer than expected. If the backend was asleep, please wait a few seconds and try again."
         );
       } else if (err.response) {
-        setError(
-          `Backend Error ${err.response.status}: ${
-            err.response.data?.error || "Unknown error"
-          }`
-        );
+        // FastAPI's HTTPException returns errors under "detail", not "error".
+        const backendMessage =
+          err.response.data?.detail || err.response.data?.error || "Unknown error";
+        setError(`Backend Error ${err.response.status}: ${backendMessage}`);
       } else if (err.request) {
         setError(
           "Unable to connect to the backend. Please ensure the backend is running."
@@ -66,6 +72,12 @@ function App() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      rankCandidates();
     }
   };
 
@@ -96,16 +108,30 @@ function App() {
             placeholder="Paste the job description here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
 
           <div className="controls">
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={topK}
-              onChange={(e) => setTopK(e.target.value)}
-            />
+            <div className="control-group">
+              <label htmlFor="topK">Results</label>
+              <input
+                id="topK"
+                type="number"
+                min="1"
+                max="20"
+                value={topK}
+                onChange={(e) => setTopK(e.target.value)}
+              />
+            </div>
+
+            <label className="llm-toggle">
+              <input
+                type="checkbox"
+                checked={useLlm}
+                onChange={(e) => setUseLlm(e.target.checked)}
+              />
+              Use AI skill extraction
+            </label>
 
             <button
               className="rank-btn"
@@ -178,24 +204,50 @@ function App() {
                     {candidate.location || "N/A"}
                   </p>
 
-                  <div className="skills">
-                    {candidate.skill_names?.length ? (
-                      candidate.skill_names
-                        .slice(0, 8)
-                        .map((skill, index) => (
-                          <span
-                            key={index}
-                            className="skill"
-                          >
-                            {skill}
-                          </span>
-                        ))
-                    ) : (
-                      <span className="skill">
-                        No skills available
-                      </span>
-                    )}
+                  <div className="score-breakdown">
+                    <span title="How well skills match the job description">
+                      JD match: {Number(candidate.jd_score ?? 0).toFixed(0)}%
+                    </span>
+                    <span title="Candidate's overall profile strength">
+                      Profile: {Number(candidate.profile_score ?? 0).toFixed(0)}
+                    </span>
                   </div>
+
+                  {candidate.matched_skills?.length > 0 && (
+                    <div className="skills">
+                      {candidate.matched_skills.map((skill, index) => (
+                        <span key={`m-${index}`} className="skill skill-matched">
+                          ✓ {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {candidate.missing_skills?.length > 0 && (
+                    <div className="skills">
+                      {candidate.missing_skills.map((skill, index) => (
+                        <span key={`x-${index}`} className="skill skill-missing">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {(!candidate.matched_skills?.length && !candidate.missing_skills?.length) && (
+                    <div className="skills">
+                      {candidate.skill_names?.length ? (
+                        candidate.skill_names
+                          .slice(0, 8)
+                          .map((skill, index) => (
+                            <span key={index} className="skill">
+                              {skill}
+                            </span>
+                          ))
+                      ) : (
+                        <span className="skill">No skills available</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
