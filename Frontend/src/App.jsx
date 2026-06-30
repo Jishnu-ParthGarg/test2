@@ -13,7 +13,7 @@ function App() {
 
   const API_URL =
     import.meta.env.VITE_BACKEND_URL ||
-    "http://127.0.0.1:8080";
+    "https://test2-ox8y.onrender.com";
 
   const rankCandidates = async () => {
     if (!jobDescription.trim()) {
