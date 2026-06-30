@@ -1,9 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from recruiter_engine import get_top_candidates
-from models import RankResponse
-
 
 app = FastAPI(title="AI Recruiter API")
 
@@ -16,14 +14,28 @@ app.add_middleware(
 )
 
 
-@app.post("/rank_candidates", response_model=RankResponse)
-def rank_candidates(request):
+@app.get("/")
+def home():
+    return {"message": "AI Recruiter API Running 🚀"}
+
+
+# 🔥 ERROR-PROOF ENDPOINT (NO 422 ANYMORE)
+@app.post("/rank_candidates")
+async def rank_candidates(request: Request):
 
     try:
-        candidates = get_top_candidates(
-            request.job_description,
-            request.top_k
-        )
+        body = await request.json()
+
+        job_description = body.get("job_description", "")
+        top_k = int(body.get("top_k", 5))
+
+        if not job_description.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="job_description is required"
+            )
+
+        candidates = get_top_candidates(job_description, top_k)
 
         return {
             "success": True,
@@ -32,4 +44,7 @@ def rank_candidates(request):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "success": False,
+            "error": str(e)
+        }
