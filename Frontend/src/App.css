@@ -218,6 +218,23 @@ input[type="number"] {
   border: 1px solid #7f1d1d;
 }
 
+/* Informational notice — calmer than .error, used for generic_ranking */
+.notice {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  border: 1px solid #bfdbfe;
+}
+
+.dark .notice {
+  background: #0c2d6b;
+  color: #93c5fd;
+  border: 1px solid #1e3a8a;
+}
+
 /* Controls row needs to wrap gracefully now that it has 3 items */
 .controls {
   flex-wrap: wrap;

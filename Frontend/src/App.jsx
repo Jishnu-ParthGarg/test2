@@ -9,6 +9,7 @@ function App() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [darkMode, setDarkMode] = useState(false);
 
   const API_URL =
@@ -24,6 +25,7 @@ function App() {
     try {
       setLoading(true);
       setError("");
+      setNotice("");
       setResults([]);
 
       const response = await axios.post(
@@ -43,9 +45,13 @@ function App() {
 
       if (response.data.success) {
         setResults(response.data.top_candidates || []);
-        if ((response.data.top_candidates || []).length === 0) {
+        if (response.data.generic_ranking) {
+          setNotice(
+            "Your job description was quite brief, so these are our strongest general candidates. Add specific skills (e.g. React, Python, SQL) for a more tailored match."
+          );
+        } else if ((response.data.top_candidates || []).length === 0) {
           setError(
-            "No matching candidates found. Try a more detailed job description, or check the use_llm toggle."
+            "No matching candidates found. Try a more detailed job description, or check the AI skill extraction toggle."
           );
         }
       } else {
@@ -153,6 +159,12 @@ function App() {
         {error && (
           <div className="error">
             {error}
+          </div>
+        )}
+
+        {notice && (
+          <div className="notice">
+            {notice}
           </div>
         )}
 

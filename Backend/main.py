@@ -47,7 +47,7 @@ def rank(request: RankRequest):
         raise HTTPException(400, "Empty JD")
 
     try:
-        candidates = get_top_candidates(
+        candidates, generic_ranking = get_top_candidates(
             request.job_description,
             request.top_k,
             use_llm=request.use_llm,
@@ -60,5 +60,6 @@ def rank(request: RankRequest):
         "success": True,
         "count": len(candidates),
         "used_llm": request.use_llm,
+        "generic_ranking": generic_ranking,
         "top_candidates": candidates,
     }
