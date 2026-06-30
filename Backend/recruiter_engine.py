@@ -138,56 +138,56 @@ def calculate_jd_score(candidate: Dict, requirements: Set[str]):
 
 def get_top_candidates(job_description: str, top_k: int = 10):
 
-    candidates = load_candidates()
+    try:
+        candidates = load_candidates()
+    except Exception as e:
+        print("LOAD ERROR:", e)
+        return []
+
     requirements = extract_jd_requirements(job_description)
 
     ranked = []
 
     for c in candidates:
 
-        profile = float(c.get("final_score", 0))
-        profile = min(profile, 100)
+        try:
+            profile = c.get("final_score", 0)
 
-        jd_score, matched, missing = calculate_jd_score(c, requirements)
+            # SAFE CONVERSION
+            try:
+                profile = float(profile)
+            except:
+                profile = 0.0
 
-        final_score = jd_score * 0.80 + profile * 0.20
+            profile = min(profile, 100)
 
-        ranked.append({
-            "candidate_id": c.get("candidate_id"),
-            "title": c.get("current_title"),
+            jd_score, matched, missing = calculate_jd_score(c, requirements)
 
-            # ✅ FIX: frontend compatibility guaranteed
-            "skills": c.get("skill_names", []),
-            "skill_names": c.get("skill_names", []),
+            final_score = jd_score * 0.80 + profile * 0.20
 
-            "jd_score": jd_score,
-            "profile_score": profile,
-            "final_score": round(final_score, 2),
+            ranked.append({
+                "candidate_id": c.get("candidate_id", "UNKNOWN"),
+                "title": c.get("current_title", ""),
+                "skills": c.get("skill_names", []),
+                "skill_names": c.get("skill_names", []),
 
-            "matched_skills": matched,
-            "missing_skills": missing,
+                "jd_score": jd_score,
+                "profile_score": profile,
+                "final_score": round(final_score, 2),
 
-            "explanation": f"Matched {len(matched)}/{len(requirements)} skills"
-        })
+                "matched_skills": matched,
+                "missing_skills": missing,
+
+                "explanation": f"Matched {len(matched)} skills"
+            })
+
+        except Exception as inner:
+            print("Candidate error:", inner)
+            continue
 
     ranked.sort(key=lambda x: x["final_score"], reverse=True)
 
-    # diversity layer (prevents same-type results)
-    final = []
-    seen = set()
-
-    for r in ranked:
-        key = tuple(sorted(r["matched_skills"][:2]))
-
-        if key not in seen:
-            final.append(r)
-            seen.add(key)
-
-        if len(final) == top_k:
-            break
-
-    return final
-
+    return ranked[:top_k]
 
 # =====================================================
 # TEST

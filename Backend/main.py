@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -62,9 +64,7 @@ def rank_candidates(
             "top_candidates": candidates
         }
 
+   
     except Exception as e:
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        print(traceback.format_exc())  # 🔥 THIS is critical
+        raise HTTPException(status_code=500, detail=str(e))
