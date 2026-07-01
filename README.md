@@ -2,7 +2,7 @@
 
 An intelligent candidate ranking platform that matches job descriptions to candidates using LLM-powered skill extraction. Paste a job description, and the system parses real technical requirements, scores every candidate in the database against them, and returns a ranked shortlist with matched/missing skills.
 
-🔗 **Live demo:** [[test2-bay-gamma-49.vercel.app](https://ai-recruiter-engine-void-main.vercel.app/)](https://ai-recruiter-engine-void-main.vercel.app/)
+🔗 **Live demo:** [(https://ai-recruiter-engine-void-main.vercel.app/)](https://ai-recruiter-engine-void-main.vercel.app/)
 🔗 **API:** [test2-ox8y.onrender.com](https://test2-ox8y.onrender.com)
 
 ---
